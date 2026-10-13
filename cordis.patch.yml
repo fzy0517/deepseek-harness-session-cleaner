@@ -1,0 +1,6 @@
+# The dsh-session-cleaner bundle patch: one host row that serves the
+# session list / delete / archive HTTP API for the web surface, and its
+# `dsh.client` browser half (registered through the same package).
+- insert:
+    - id: session-cleaner
+      name: 'dsh-session-cleaner'

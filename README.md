@@ -1,0 +1,60 @@
+# dsh-session-cleaner
+
+给 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 增加一个「删除对话」侧栏面板的插件：可以勾选并删除**任意**对话记录——包括**未分组的对话**（默认工作区 / 无工作区的对话）。官方界面只能删除工作区、归档对话，不能删除对话本身，这个插件补上了这个缺口。
+
+## 功能
+
+- 侧栏底部新增「删除对话」垃圾桶图标 → 打开面板
+- 列出所有对话：标题、所属工作区或「未分组」标签、轮数、大小、最后活动时间、归档 / 置顶 / 运行中 / 已打开状态
+- 搜索、筛选（全部 / 未分组 / 已归档 / 使用中）、多选、全选
+- 批量删除或逐条删除（两步确认，防误删）；点击标题可直接打开对话
+- 「归档」替代方案：不想彻底删除的对话先归档（隐藏，可找回）
+- 正在打开 / 运行的对话默认不允许删除（有提示）；勾选「同时删除正在运行的对话」可强制删除
+- 中英双语、自适应明暗主题
+
+## 安装
+
+在 **DeepSeek Harness 完全退出**后执行（Windows 可双击仓库里的 `install-session-cleaner.cmd`，或手动执行）：
+
+```bat
+"%LOCALAPPDATA%\Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd" plugin --profile desktop add "file:<本仓库路径>"
+```
+
+然后重新启动 DeepSeek Harness，侧栏底部（设置图标上方）出现垃圾桶图标。
+
+> 也可以装到 `web` 配置：把命令中的 `desktop` 换成 `web`。
+
+**卸载**（完全退出后）：
+
+```bat
+"%LOCALAPPDATA%\Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd" plugin --profile desktop remove dsh-session-cleaner
+```
+
+## 工作原理
+
+插件是一个包（host + 浏览器两个半边）：
+
+- **Host 半边**（`lib/index.js`）在应用 Web 服务器上注册三个接口：
+  - `GET /api/session-cleaner/sessions` — 汇总会话持久化、工作区注册表、投影缓存，返回全部对话
+  - `POST /api/session-cleaner/delete` — 删除：移除会话磁盘目录、投影缓存记录、工作区登记，并广播 `api-session/removed` 让侧栏即时刷新
+  - `POST /api/session-cleaner/archive` — 走官方归档流程（隐藏保留）
+- **浏览器半边**（`lib/client.js`）注册侧栏图标与主面板（React UI，使用 `--dsw-alias-*` 主题变量自适应明暗主题）
+
+### 安全说明
+
+- 删除不可恢复，删除前请确认不再需要该对话。
+- 「使用中」的对话（本次应用运行中打开过 / 正在运行）默认被跳过；强制删除后，该对话窗口在本应用运行期间仍可继续使用，但**重启应用后新产生的消息不会保留**。
+- 附件（图片 / 文件字节）按内容寻址共享存储，删除对话不会删除附件文件，避免误伤其他对话。
+- 只删除对话记录本身，不会改动任何工作区目录里的文件。
+
+## 开发
+
+- host 半边：`lib/index.js`（Node / Cordis Service）
+- 浏览器半边：`lib/client.js`（`window.__ModuleLoader__.load` 预编译格式，无需构建步骤，`dsh.client` 直接加载）
+- 配置注入：`cordis.patch.yml`（把本包注册为插件行）
+
+已在隔离 DSH_HOME 中通过端到端测试（列表 / 删除 / 归档 / 强制删除 / 客户端加载 / 面板渲染），并在真实 desktop 配置组成中验证插件激活与数据列表。
+
+## 许可
+
+[MIT](./LICENSE)
