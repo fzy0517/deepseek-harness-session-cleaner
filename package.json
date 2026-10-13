@@ -6,7 +6,7 @@
   "main": "lib/index.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/fzy/dsh-session-cleaner.git"
+    "url": "git+https://github.com/fzy/deepseek-harness-session-cleaner.git"
   },
   "exports": {
     ".": "./lib/index.js",
